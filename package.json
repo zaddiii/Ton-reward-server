@@ -1,0 +1,12 @@
+
+
+
+,{
+  "name": "ton-reward-server",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "tonweb": "^0.0.67",
+    "node-fetch": "^3.3.2"
+  }
+}
