@@ -1,12 +1,17 @@
 
 
 
-,{
+{
   "name": "ton-reward-server",
   "version": "1.0.0",
+  "description": "Simple TON reward API server for RPG Battle Arena (DevNet)",
+  "main": "api/reward.js",
   "type": "module",
+  "scripts": {
+    "start": "node api/reward.js"
+  },
   "dependencies": {
     "tonweb": "^0.0.67",
-    "node-fetch": "^3.3.2"
+    "dotenv": "^16.4.5"
   }
 }
