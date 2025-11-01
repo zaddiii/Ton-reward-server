@@ -4,23 +4,16 @@
 
 
 {
-  "name": "ton-reward-server",
+  "name": "my-backend",
   "version": "1.0.0",
-  "description": "Backend for RPG TON Battle Arena rewards",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/zaddiii/Ton-reward-server.git"
+  "engines": {
+    "node": "18.x"
   },
-  "keywords": ["rpg", "ton", "reward", "backend"],
-  "author": "zaddiii <joelomoemmanuel965@gmail.com>",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^4.18.2"
   }
 }
