@@ -1,0 +1,27 @@
+{
+  "name": "ton-reward-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zaddiii/Ton-reward-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zaddiii/Ton-reward-server/issues"
+  },
+  "homepage": "https://github.com/zaddiii/Ton-reward-server#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+  "scripts": {
+  "start": "node server.js"
+  }
+}
