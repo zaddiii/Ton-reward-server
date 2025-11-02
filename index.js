@@ -48,68 +48,44 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT} 🌀`));
 
 
-document.addEventListener('DOMContentLoaded', () => {
-  const API_BASE = 'https://rpg-backend-gocj.onrender.com';
 
-  // Only create the reward UI if it doesn't exist
-  if (!document.getElementById('rewardContainer')) {
-    const container = document.createElement('div');
-    container.id = 'rewardContainer';
+// index.js
+const express = require("express");
+const cors = require("cors");
 
-    // Basic styling to blend with typical boilerplate
-    container.style.padding = '15px';
-    container.style.marginTop = '20px';
-    container.style.border = '1px solid #ccc';
-    container.style.borderRadius = '10px';
-    container.style.backgroundColor = '#f9f9f9';
-    container.style.maxWidth = '400px';
-    container.style.fontFamily = 'inherit';
-    container.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+const app = express();
 
-    container.innerHTML = `
-      <h2 style="margin-top:0;">Send Reward</h2>
-      <label for="rewardUser">Recipient:</label><br>
-      <input type="text" id="rewardUser" placeholder="Enter username" style="width: 100%; padding: 6px; margin: 5px 0;"><br>
-      <label for="rewardScore">Score:</label><br>
-      <input type="number" id="rewardScore" placeholder="Enter score" style="width: 100%; padding: 6px; margin: 5px 0;"><br>
-      <button id="rewardBtn" style="padding: 8px 12px; margin-top: 10px; cursor: pointer; border-radius: 5px; border: none; background-color: #4CAF50; color: white;">Send Reward</button>
-      <div id="rewardResult" style="margin-top: 10px; font-weight: bold;"></div>
-    `;
+// Allow frontend requests from GitHub Pages or any origin
+app.use(
+  cors({
+    origin: "*", // you can replace "*" with your GitHub Pages URL for stricter security
+  })
+);
+app.use(express.json());
 
-    // Append to body or any specific container in your boilerplate
-    document.body.appendChild(container);
-  }
+// Use Render’s assigned port or local 3000
+const PORT = process.env.PORT || 3000;
 
-  // Function to send reward
-  function sendReward(to, score) {
-    fetch(`${API_BASE}/api/reward`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to, score })
-    })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Reward response:', data);
-      document.getElementById('rewardResult').innerText =
-        `Reward sent! Transaction: ${data.tx}`;
-    })
-    .catch(err => {
-      console.error('Error sending reward:', err);
-      document.getElementById('rewardResult').innerText = 'Failed to send reward.';
-    });
-  }
+// 🧠 Root route (for testing if backend is alive)
+app.get("/", (req, res) => {
+  res.send("✅ Backend is running on Render at https://rpg-backend-gocj.onrender.com");
+});
 
-  // Attach click event
-  const rewardBtn = document.getElementById('rewardBtn');
-  rewardBtn.addEventListener('click', () => {
-    const user = document.getElementById('rewardUser').value;
-    const score = Number(document.getElementById('rewardScore').value);
+// 🎁 Reward API endpoint
+app.post("/api/reward", (req, res) => {
+  const { to, score } = req.body;
 
-    if (!user || !score) {
-      alert('Please enter both recipient and score.');
-      return;
-    }
+  console.log(`🎯 Reward request received from ${to} with score ${score}`);
 
-    sendReward(user, score);
+  // Simulated success response
+  res.json({
+    ok: true,
+    tx: "SIMULATED_TX_HASH",
+    message: `Reward for ${to} processed successfully.`,
   });
+});
+
+// 🚀 Start the server
+app.listen(PORT, () => {
+  console.log(`🚀 Server started successfully on port ${PORT}`);
 });
