@@ -3,35 +3,31 @@
 
 
 
-// Load environment variables from .env
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
 
 const app = express();
 
-// Middleware
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(morgan('dev'));
 
-// Test route
 app.get('/', (req, res) => {
-  res.send('Backend is running 🎉');
+  res.send('🚀 Scalable backend running smoothly');
 });
 
-// Example reward route
-app.post('/reward', (req, res) => {
+app.post('/reward', async (req, res) => {
   const { user, amount } = req.body;
-  if (!user || !amount) {
-    return res.status(400).json({ error: 'Missing user or amount' });
-  }
-  // Here you can integrate TON SDK / database
-  res.json({ message: `Rewarded ${amount} to ${user}` });
+  if (!user || !amount) return res.status(400).json({ error: 'Missing data' });
+
+  // Imagine reward processing here
+  await new Promise(resolve => setTimeout(resolve, 200)); // fake async op
+  res.json({ success: true, message: `Rewarded ${amount} tokens to ${user}` });
 });
 
-// Use dynamic port for Render
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT} 🌀`));
