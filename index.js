@@ -12,7 +12,12 @@ const morgan = require('morgan');
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://zaddiii.github.io",
+    "http://localhost:5173" 
+  ]
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 
