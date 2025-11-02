@@ -1,48 +1,60 @@
 
 
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
 
+// ✅ index.js — Clean, Render-ready backend (for GitHub frontend)
+
+// Import dependencies
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+
+// Initialize app
 const app = express();
-
-// 🧠 Security + Middleware setup
-app.use(helmet());
-app.use(cors({
-  origin: [
-    "https://zaddiii.github.io", // your frontend
-    "http://localhost:5173"      // for local testing
-  ]
-}));
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(cors({
+  origin: "*", // 👈 allows your GitHub Pages frontend to connect
+}));
+app.use(helmet());
+app.use(morgan("dev"));
 
-// ✅ Health check route
-app.get('/', (req, res) => {
-  res.send('🚀 Scalable backend running smoothly');
-});
+const PORT = process.env.PORT || 3000;
 
-// 🎯 Reward route — matches frontend
-app.post('/reward', async (req, res) => {
-  const { wallet } = req.body;
+// 🟢 Your Render backend URL
+const BACKEND_URL = "https://rpg-backend-gocj.onrender.com";
 
-  if (!wallet) {
-    return res.status(400).json({ ok: false, error: 'Wallet address missing' });
-  }
-
-  // Simulate async reward logic (like sending tokens)
-  await new Promise(resolve => setTimeout(resolve, 200));
-
+// ✅ Root route — check if backend is running
+app.get("/", (req, res) => {
   res.json({
-    ok: true,
-    tx: `rewarded-${wallet}-simulated`,
-    message: `Reward sent successfully to wallet ${wallet}`
+    message: "✅ RPG Backend is live and connected to GitHub frontend!",
+    backend: BACKEND_URL,
   });
 });
 
-// 🌐 Port setup
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT} 🌀`));
+// ✅ Reward API — called from your frontend
+app.post("/api/reward", (req, res) => {
+  const { to, score } = req.body;
+
+  if (!to || !score) {
+    return res.status(400).json({
+      ok: false,
+      error: "Missing 'to' or 'score' in request body",
+    });
+  }
+
+  console.log(`🎯 Reward request received for: ${to}, score: ${score}`);
+
+  // Simulate reward logic — replace with real blockchain logic later if needed
+  res.json({
+    ok: true,
+    tx: "SIMULATED_TX_HASH",
+    message: `Reward successfully processed for ${to} with score ${score}`,
+    backend: BACKEND_URL,
+  });
+});
+
+// ✅ Start server
+app.listen(PORT, () => {
+  console.log(`🚀 RPG Backend running on port ${PORT}`);
+});
