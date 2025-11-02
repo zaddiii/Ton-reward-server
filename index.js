@@ -1,32 +1,43 @@
 
 
-const express = require("express");
-const cors = require("cors");
+
+
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const helmet = require('helmet');
+const morgan = require('morgan');
+
+dotenv.config();
 const app = express();
 
+// ✅ Allow CORS from your frontend domain (GitHub Pages)
+app.use(cors({
+  origin: ['https://zaddiii.github.io'], // ← replace with your actual GitHub Pages URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
+
 app.use(express.json());
+app.use(helmet());
+app.use(morgan('dev'));
 
-// ✅ FIX: Allow all origins for frontend testing
-app.use(
-  cors({
-    origin: "*", // allow all origins
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+// ✅ Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend is running fine!' });
+});
 
-const PORT = process.env.PORT || 3000;
-
-app.post("/api/reward", (req, res) => {
-  const { to, score } = req.body;
-  console.log(`Reward request from: ${to}, score: ${score}`);
-
+// ✅ Example reward endpoint
+app.post('/api/reward', (req, res) => {
   res.json({
     ok: true,
-    tx: "SIMULATED_TX_HASH",
-    message: `Reward successfully processed for ${to} with score ${score}`,
-    backend: "https://rpg-backend-gocj.onrender.com",
+    tx: 'SIMULATED_TX_HASH',
+    message: 'Reward successfully processed for test user with score 100',
+    backend: 'https://rpg-backend-gocj.onrender.com'
   });
 });
 
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
