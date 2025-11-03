@@ -1,43 +1,45 @@
 
 
 
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { TonClient, WalletContractV4, internal, mnemonicToWalletKey } from "ton";
+import pkg from "ton";
+
+const { TonClient, WalletContractV4, internal, mnemonicToWalletKey } = pkg;
 
 dotenv.config();
-
 const app = express();
 app.use(express.json());
-app.use(
-  cors({
-    origin: ["https://zaddiii.github.io", "http://localhost:3000"],
-    methods: ["GET", "POST"],
-  })
-);
 
+app.use(cors({
+  origin: ["https://zaddiii.github.io", "http://localhost:3000"],
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+}));
+
+// ✅ Initialize TON client
 const toncenter = new TonClient({
-  endpoint: process.env.TONCENTER_API,
-  apiKey: process.env.TONCENTER_API_KEY,
+  endpoint: process.env.TONCENTER_API,     // e.g. https://testnet.toncenter.com/api/v2/jsonRPC
+  apiKey: process.env.TONCENTER_API_KEY,   // optional
 });
 
-let wallet;
-let senderAddress;
+let wallet, key;
 
-// 🧠 Load wallet from mnemonic
+// 🔐 Load wallet from mnemonic
 async function initWallet() {
-  const key = await mnemonicToWalletKey(process.env.OWNER_MNEMONIC.split(" "));
+  if (wallet) return { wallet, key }; // prevent reload
+  key = await mnemonicToWalletKey(process.env.OWNER_MNEMONIC.split(" "));
   wallet = WalletContractV4.create({ workchain: 0, publicKey: key.publicKey });
-  senderAddress = wallet.address.toString(true, true, true);
-  console.log(`✅ Wallet loaded: ${senderAddress}`);
+  console.log(`✅ Wallet loaded: ${wallet.address.toString(true, true, true)}`);
   return { wallet, key };
 }
 
 // ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 🪙 Real Jetton reward route
+// 💸 Real Jetton reward route
 app.post("/api/reward", async (req, res) => {
   try {
     const { to } = req.body;
@@ -48,16 +50,18 @@ app.post("/api/reward", async (req, res) => {
 
     console.log(`🎯 Sending 100 Jettons to: ${to}`);
 
+    const body = Buffer.from(
+      JSON.stringify({
+        op: "JettonTransfer",
+        destination: to,
+        amount: "100",
+      })
+    );
+
     const transfer = internal({
       to: process.env.JETTON_MASTER,
-      value: "0.05", // TON fee
-      body: Buffer.from(
-        JSON.stringify({
-          op: "JettonTransfer",
-          destination: to,
-          amount: "100",
-        })
-      ),
+      value: "0.05", // TON fee (in TON)
+      body,
     });
 
     const msg = await wallet.createTransfer({
@@ -69,7 +73,7 @@ app.post("/api/reward", async (req, res) => {
     await toncenter.sendBoc(msg.toBoc());
     console.log(`✅ Jetton transfer broadcasted to ${to}`);
 
-    res.json({ ok: true, tx: "Broadcasted to TON Testnet" });
+    res.json({ ok: true, tx: "Broadcasted to TON network" });
   } catch (err) {
     console.error("❌ Error sending Jettons:", err);
     res.status(500).json({ ok: false, error: err.message });
