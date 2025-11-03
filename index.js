@@ -4,8 +4,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { mnemonicToWalletKey } from "ton-crypto";
-import { TonClient, WalletContractV4, internal } from "ton";
+import { TonClient, WalletContractV4, internal, mnemonicToWalletKey } from "ton";
 
 dotenv.config();
 
@@ -35,10 +34,10 @@ async function initWallet() {
   return { wallet, key };
 }
 
-// ✅ Root route
+// ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 🪙 Reward endpoint
+// 🪙 Real Jetton reward route
 app.post("/api/reward", async (req, res) => {
   try {
     const { to } = req.body;
@@ -49,15 +48,16 @@ app.post("/api/reward", async (req, res) => {
 
     console.log(`🎯 Sending 100 Jettons to: ${to}`);
 
-    // Construct internal transfer (Jetton transfer message)
     const transfer = internal({
-      to: process.env.JETTON_MASTER, // Jetton master contract
-      value: "0.05", // small TON fee
-      body: Buffer.from(JSON.stringify({
-        op: "JettonTransfer",
-        destination: to,
-        amount: "100", // Adjust your token logic
-      })),
+      to: process.env.JETTON_MASTER,
+      value: "0.05", // TON fee
+      body: Buffer.from(
+        JSON.stringify({
+          op: "JettonTransfer",
+          destination: to,
+          amount: "100",
+        })
+      ),
     });
 
     const msg = await wallet.createTransfer({
