@@ -1,37 +1,80 @@
 
 
 
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const app = express();
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { mnemonicToWalletKey } from "ton-crypto";
+import { TonClient, WalletContractV4, internal } from "ton";
 
 dotenv.config();
+
+const app = express();
 app.use(express.json());
+app.use(
+  cors({
+    origin: ["https://zaddiii.github.io", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+  })
+);
 
-// ✅ Allow requests from your GitHub Pages frontend
-app.use(cors({
-  origin: ["https://zaddiii.github.io", "http://localhost:3000"],
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"],
-}));
-
-// ✅ Simple test route
-app.get("/", (req, res) => {
-  res.send("Backend running successfully 🟢");
+const toncenter = new TonClient({
+  endpoint: process.env.TONCENTER_API,
+  apiKey: process.env.TONCENTER_API_KEY,
 });
 
-// ✅ Reward endpoint
-app.post("/api/reward", (req, res) => {
-  const { user, amount } = req.body;
-  console.log(`Reward requested for ${user} with ${amount}`);
+let wallet;
+let senderAddress;
 
-  res.json({
-    ok: true,
-    message: "Reward successfully processed",
-    tx: "SIMULATED_TX_HASH",
-  });
+// 🧠 Load wallet from mnemonic
+async function initWallet() {
+  const key = await mnemonicToWalletKey(process.env.OWNER_MNEMONIC.split(" "));
+  wallet = WalletContractV4.create({ workchain: 0, publicKey: key.publicKey });
+  senderAddress = wallet.address.toString(true, true, true);
+  console.log(`✅ Wallet loaded: ${senderAddress}`);
+  return { wallet, key };
+}
+
+// ✅ Root route
+app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
+
+// 🪙 Reward endpoint
+app.post("/api/reward", async (req, res) => {
+  try {
+    const { to } = req.body;
+    if (!to) return res.status(400).json({ ok: false, error: "Missing 'to' address" });
+
+    const { wallet, key } = await initWallet();
+    const seqno = await toncenter.getWalletSeqno(wallet.address);
+
+    console.log(`🎯 Sending 100 Jettons to: ${to}`);
+
+    // Construct internal transfer (Jetton transfer message)
+    const transfer = internal({
+      to: process.env.JETTON_MASTER, // Jetton master contract
+      value: "0.05", // small TON fee
+      body: Buffer.from(JSON.stringify({
+        op: "JettonTransfer",
+        destination: to,
+        amount: "100", // Adjust your token logic
+      })),
+    });
+
+    const msg = await wallet.createTransfer({
+      seqno,
+      secretKey: key.secretKey,
+      messages: [transfer],
+    });
+
+    await toncenter.sendBoc(msg.toBoc());
+    console.log(`✅ Jetton transfer broadcasted to ${to}`);
+
+    res.json({ ok: true, tx: "Broadcasted to TON Testnet" });
+  } catch (err) {
+    console.error("❌ Error sending Jettons:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
