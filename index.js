@@ -39,28 +39,32 @@ async function initWallet() {
 // ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 💸 Real Jetton reward route
+// 💸 Real Jetton reward route (updated)
 app.post("/api/reward", async (req, res) => {
   try {
-    const { to } = req.body;
-    if (!to) return res.status(400).json({ ok: false, error: "Missing 'to' address" });
+    const { to, amount } = req.body;
+
+    if (!to) {
+      console.log("⚠️ Missing 'to' field in request body:", req.body);
+      return res.status(400).json({ ok: false, error: "Missing 'to' address" });
+    }
 
     const { wallet, key } = await initWallet();
     const seqno = await toncenter.getWalletSeqno(wallet.address);
 
-    console.log(`🎯 Sending 100 Jettons to: ${to}`);
+    console.log(`🎯 Sending ${amount || 100} Jettons to: ${to}`);
 
     const body = Buffer.from(
       JSON.stringify({
         op: "JettonTransfer",
         destination: to,
-        amount: "100",
+        amount: amount?.toString() || "100",
       })
     );
 
     const transfer = internal({
       to: process.env.JETTON_MASTER,
-      value: "0.05", // TON fee (in TON)
+      value: "0.05", // TON fee
       body,
     });
 
