@@ -1,7 +1,6 @@
 
 
 
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -38,7 +37,7 @@ async function initWallet() {
 // ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 💸 Real Jetton reward route (updated + fixed)
+// 💸 Jetton reward route (fully fixed)
 app.post("/api/reward", async (req, res) => {
   try {
     const { to, amount } = req.body;
@@ -49,7 +48,9 @@ app.post("/api/reward", async (req, res) => {
     }
 
     const { wallet, key } = await initWallet();
-    const seqno = await wallet.getSeqno(toncenter); // ✅ FIXED LINE
+
+    // ✅ FIXED: Proper way to get seqno with new TON SDK
+    const seqno = (await toncenter.runMethod(wallet.address, 'seqno')).stack.readNumber();
 
     console.log(`🎯 Sending ${amount || 100} Jettons to: ${to}`);
 
