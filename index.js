@@ -37,7 +37,7 @@ async function initWallet() {
 // ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 💸 Jetton reward route (fully fixed)
+// 💸 Real Jetton reward route
 app.post("/api/reward", async (req, res) => {
   try {
     const { to, amount } = req.body;
@@ -49,8 +49,10 @@ app.post("/api/reward", async (req, res) => {
 
     const { wallet, key } = await initWallet();
 
-    // ✅ FIXED: Proper way to get seqno with new TON SDK
-    const seqno = (await toncenter.runMethod(wallet.address, 'seqno')).stack.readNumber();
+    // ✅ FIXED — fetch seqno using runMethod()
+    const result = await toncenter.runMethod(wallet.address, "seqno");
+    const seqno = result.stack.readNumber();
+    console.log(`🔢 Seqno: ${seqno}`);
 
     console.log(`🎯 Sending ${amount || 100} Jettons to: ${to}`);
 
