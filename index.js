@@ -5,9 +5,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import pkg from "ton";
-
-const { TonClient, WalletContractV4, internal, mnemonicToWalletKey } = pkg;
+import { TonClient, WalletContractV4, internal } from "ton";
+import { mnemonicToWalletKey } from "ton-crypto";
 
 dotenv.config();
 const app = express();
