@@ -1,6 +1,5 @@
 
 
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -17,10 +16,12 @@ app.use(cors({
   allowedHeaders: ["Content-Type"],
 }));
 
-// ✅ Initialize TON client
+// ✅ Initialize TON client (fixed URL handling)
 const toncenter = new TonClient({
-  endpoint: process.env.TONCENTER_API,     // e.g. https://testnet.toncenter.com/api/v2/jsonRPC
-  apiKey: process.env.TONCENTER_API_KEY,   // optional
+  endpoint:
+    process.env.TONCENTER_API?.replace(/\/+$/, "") ||
+    "https://toncenter-testnet.qweasd.ninja/api/v2/jsonRPC",
+  apiKey: process.env.TONCENTER_API_KEY || undefined,
 });
 
 let wallet, key;
