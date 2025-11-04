@@ -38,7 +38,7 @@ async function initWallet() {
 // ✅ Test route
 app.get("/", (req, res) => res.send("🟢 TON Reward Server is Live"));
 
-// 💸 Real Jetton reward route (updated)
+// 💸 Real Jetton reward route (updated + fixed)
 app.post("/api/reward", async (req, res) => {
   try {
     const { to, amount } = req.body;
@@ -49,7 +49,7 @@ app.post("/api/reward", async (req, res) => {
     }
 
     const { wallet, key } = await initWallet();
-    const seqno = await toncenter.getWalletSeqno(wallet.address);
+    const seqno = await wallet.getSeqno(toncenter); // ✅ FIXED LINE
 
     console.log(`🎯 Sending ${amount || 100} Jettons to: ${to}`);
 
