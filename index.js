@@ -1,5 +1,7 @@
 
 
+
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -10,17 +12,19 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-app.use(cors({
-  origin: ["https://zaddiii.github.io", "http://localhost:3000"],
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"],
-}));
+app.use(
+  cors({
+    origin: ["https://zaddiii.github.io", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
-// ✅ Initialize TON client (fixed URL handling)
+// ✅ Initialize TON client (using official testnet endpoint)
 const toncenter = new TonClient({
   endpoint:
     process.env.TONCENTER_API?.replace(/\/+$/, "") ||
-    "https://toncenter-testnet.qweasd.ninja/api/v2/jsonRPC",
+    "https://testnet.toncenter.com/api/v2/jsonRPC",
   apiKey: process.env.TONCENTER_API_KEY || undefined,
 });
 
@@ -50,7 +54,7 @@ app.post("/api/reward", async (req, res) => {
 
     const { wallet, key } = await initWallet();
 
-    // ✅ FIXED — fetch seqno using runMethod()
+    // ✅ Fetch seqno using runMethod()
     const result = await toncenter.runMethod(wallet.address, "seqno");
     const seqno = result.stack.readNumber();
     console.log(`🔢 Seqno: ${seqno}`);
