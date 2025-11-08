@@ -44,7 +44,8 @@ let walletAddress;
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
     // ✅ Correct wallet class path
-    const WalletClass = TonWeb.wallet.all.v4R2;
+    const WalletClass =
+  TonWeb.wallet?.v4R2 || TonWeb.wallet?.WalletV4R2 || TonWeb.wallet;
 
     wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
