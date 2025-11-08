@@ -3,7 +3,6 @@
 
 
 
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -72,7 +71,9 @@ try {
   const seed = seedOrSecret.length === 64 ? seedOrSecret.slice(0, 32) : seedOrSecret;
 
   keyPair = TonWeb.utils.keyPairFromSeed(seed);
-  const WalletClass = TonWeb.wallet.all["v3R2"];
+
+  // ✅ FIXED — changed TonWeb.wallet.all → TonWeb.wallets.all
+  const WalletClass = TonWeb.wallets.all.v3R2;
   wallet = new WalletClass(tonweb.provider, { publicKey: keyPair.publicKey });
 
   (async () => {
