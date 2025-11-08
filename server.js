@@ -33,7 +33,7 @@ let wallet;
     }
 
     const keyPair = await mnemonicToKeyPair(seedPhrase.split(" "));
-    const WalletClass = tonweb.wallet.all.v3R2;
+    const WalletClass = tonweb.wallet.all.v4R2;
 
     wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
