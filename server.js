@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Testnet provider (not mainnet)
+// ✅ connect to TESTNET endpoint
 const tonweb = new TonWeb(
   new TonWeb.HttpProvider("https://testnet.toncenter.com/api/v2/jsonRPC")
 );
@@ -25,27 +25,26 @@ let walletAddress;
 (async () => {
   try {
     const privateKeyBase64 = process.env.TON_PRIVATE_KEY;
-    if (!privateKeyBase64)
-      throw new Error("Missing TON_PRIVATE_KEY in environment variables");
+    if (!privateKeyBase64) throw new Error("Missing TON_PRIVATE_KEY in .env");
 
     const seed = Buffer.from(privateKeyBase64, "base64");
-    if (seed.length !== 32)
-      throw new Error(`TON_PRIVATE_KEY must be 32 bytes (found ${seed.length})`);
 
-    console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
+    // 🧩 if it's 64 bytes, extract only first 32 bytes as seed
+    const seed32 = seed.length === 64 ? seed.subarray(0, 32) : seed;
 
-    const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
+    console.log(`🔐 Loaded ${seed32.length}-byte seed from TON_PRIVATE_KEY.`);
 
-    // ✅ Use explicit v4R2 wallet version (Tonkeeper standard)
-    const WalletClass = TonWeb.wallet.all.v4R2;
-    wallet = new WalletClass(tonweb.provider, {
+    const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed32);
+
+    // ✅ Create wallet (universal auto-select v4R2)
+    wallet = new tonweb.wallet.all.v4R2({
       publicKey: keyPair.publicKey,
       workchain: 0,
     });
 
     walletAddress = await wallet.getAddress();
 
-    console.log("✅ TON Wallet initialized on TESTNET");
+    console.log("✅ TON Wallet successfully initialized");
     console.log("📜 Wallet Address:", walletAddress.toString(true, true, true));
   } catch (err) {
     console.error("❌ Failed to initialize wallet:", err);
@@ -53,7 +52,7 @@ let walletAddress;
   }
 })();
 
-app.get("/", (req, res) => res.send("🚀 TON Reward Server (TESTNET) is live"));
+app.get("/", (req, res) => res.send("TON Reward Server (Testnet) 🚀"));
 
 app.get("/balance", async (req, res) => {
   try {
