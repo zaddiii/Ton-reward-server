@@ -2,30 +2,39 @@
 
 
 
+
 import express from "express";
-import dotenv from "dotenv";
+import cors from "cors";
+import bodyParser from "body-parser";
 import TonWeb from "tonweb";
-import { mnemonicToKeyPair } from "tonweb-mnemonic";
+import dotenv from "dotenv";
+import fs from "fs";
+
+// ✅ Correct import for CommonJS tonweb-mnemonic
+import pkg from "tonweb-mnemonic";
+const { mnemonicToKeyPair } = pkg;
 
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(cors());
+app.use(bodyParser.json());
 
+// ✅ Initialize TonWeb with TON Center API
 const tonweb = new TonWeb(new TonWeb.HttpProvider("https://toncenter.com/api/v2/jsonRPC"));
 
-// Initialize TON wallet safely
+// ✅ Initialize TON wallet safely
 let wallet;
 (async () => {
   try {
     const seedPhrase = process.env.WALLET_SEED_PHRASE;
     if (!seedPhrase) {
-      throw new Error("Missing WALLET_SEED_PHRASE in .env");
+      throw new Error("Missing WALLET_SEED_PHRASE in environment variables");
     }
 
     const keyPair = await mnemonicToKeyPair(seedPhrase.split(" "));
-
     const WalletClass = tonweb.wallet.all.v3R2;
+
     wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
     });
@@ -41,15 +50,16 @@ let wallet;
   }
 })();
 
-// Example route
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("TON Reward Server is running successfully 🚀");
 });
 
-// Live prices or other endpoints
+// ✅ Example endpoint (fetch live prices or data)
 app.get("/prices", async (req, res) => {
   res.json({ status: "live", time: new Date().toISOString() });
 });
 
+// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
