@@ -14,7 +14,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Use TON testnet endpoint
+// ✅ Testnet provider (not mainnet)
 const tonweb = new TonWeb(
   new TonWeb.HttpProvider("https://testnet.toncenter.com/api/v2/jsonRPC")
 );
@@ -25,31 +25,35 @@ let walletAddress;
 (async () => {
   try {
     const privateKeyBase64 = process.env.TON_PRIVATE_KEY;
-    if (!privateKeyBase64) throw new Error("Missing TON_PRIVATE_KEY in .env");
+    if (!privateKeyBase64)
+      throw new Error("Missing TON_PRIVATE_KEY in environment variables");
 
     const seed = Buffer.from(privateKeyBase64, "base64");
     if (seed.length !== 32)
-      throw new Error("TON_PRIVATE_KEY must be 32 bytes (base64 encoded).");
+      throw new Error(`TON_PRIVATE_KEY must be 32 bytes (found ${seed.length})`);
 
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
+
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Explicitly use WalletV4R2 for Tonkeeper compatibility
-    wallet = new TonWeb.wallet.all.v4R2(tonweb.provider, {
+    // ✅ Use explicit v4R2 wallet version (Tonkeeper standard)
+    const WalletClass = TonWeb.wallet.all.v4R2;
+    wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
-      wc: -1, // -1 = testnet
+      workchain: 0,
     });
 
     walletAddress = await wallet.getAddress();
-    console.log("✅ TON Wallet successfully initialized (TESTNET)");
+
+    console.log("✅ TON Wallet initialized on TESTNET");
     console.log("📜 Wallet Address:", walletAddress.toString(true, true, true));
   } catch (err) {
-    console.error("❌ Failed to create wallet class:", err);
+    console.error("❌ Failed to initialize wallet:", err);
     process.exit(1);
   }
 })();
 
-app.get("/", (req, res) => res.send("🚀 TON Reward Server (Testnet) is running"));
+app.get("/", (req, res) => res.send("🚀 TON Reward Server (TESTNET) is live"));
 
 app.get("/balance", async (req, res) => {
   try {
