@@ -2,8 +2,6 @@
 
 
 
-
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -16,7 +14,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ TON API endpoint
 const tonweb = new TonWeb(
   new TonWeb.HttpProvider("https://toncenter.com/api/v2/jsonRPC")
 );
@@ -36,9 +33,8 @@ let walletAddress;
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Correct wallet init (v4R2 auto-selected)
-    const WalletClass = TonWeb.wallet.all["v4R2"];
-    wallet = new WalletClass(tonweb.provider, {
+    // ✅ Universal wallet init (auto-selects v4R2)
+    wallet = tonweb.wallet.create({
       publicKey: keyPair.publicKey,
       workchain: 0,
     });
@@ -52,7 +48,6 @@ let walletAddress;
   }
 })();
 
-// ✅ Routes
 app.get("/", (req, res) => res.send("TON Reward Server is running 🚀"));
 
 app.get("/balance", async (req, res) => {
@@ -75,6 +70,5 @@ app.get("/balance", async (req, res) => {
   }
 });
 
-// ✅ Port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
