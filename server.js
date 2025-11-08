@@ -14,8 +14,9 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// ✅ Use TON testnet endpoint
 const tonweb = new TonWeb(
-  new TonWeb.HttpProvider("https://toncenter.com/api/v2/jsonRPC")
+  new TonWeb.HttpProvider("https://testnet.toncenter.com/api/v2/jsonRPC")
 );
 
 let wallet;
@@ -33,14 +34,14 @@ let walletAddress;
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Universal wallet init (auto-selects v4R2)
-    wallet = tonweb.wallet.create({
+    // ✅ Explicitly use WalletV4R2 for Tonkeeper compatibility
+    wallet = new TonWeb.wallet.all.v4R2(tonweb.provider, {
       publicKey: keyPair.publicKey,
-      workchain: 0,
+      wc: -1, // -1 = testnet
     });
 
     walletAddress = await wallet.getAddress();
-    console.log("✅ TON Wallet successfully initialized");
+    console.log("✅ TON Wallet successfully initialized (TESTNET)");
     console.log("📜 Wallet Address:", walletAddress.toString(true, true, true));
   } catch (err) {
     console.error("❌ Failed to create wallet class:", err);
@@ -48,7 +49,7 @@ let walletAddress;
   }
 })();
 
-app.get("/", (req, res) => res.send("TON Reward Server is running 🚀"));
+app.get("/", (req, res) => res.send("🚀 TON Reward Server (Testnet) is running"));
 
 app.get("/balance", async (req, res) => {
   try {
@@ -62,7 +63,7 @@ app.get("/balance", async (req, res) => {
 
     res.json({
       walletAddress: walletAddress.toString(true, true, true),
-      balance: `${balanceTon} TON`,
+      balance: `${balanceTon} TON (testnet)`,
     });
   } catch (err) {
     console.error("❌ Error fetching balance:", err);
