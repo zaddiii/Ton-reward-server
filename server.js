@@ -2,6 +2,7 @@
 
 
 
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -19,7 +20,6 @@ const tonweb = new TonWeb(
   new TonWeb.HttpProvider("https://toncenter.com/api/v2/jsonRPC")
 );
 
-// ✅ Initialize TON wallet safely
 let wallet;
 let walletAddress;
 
@@ -30,7 +30,6 @@ let walletAddress;
       throw new Error("Missing TON_PRIVATE_KEY in environment variables");
     }
 
-    // Decode Base64 -> 32-byte seed buffer
     const seed = Buffer.from(privateKeyBase64, "base64");
     if (seed.length !== 32) {
       throw new Error(
@@ -39,23 +38,22 @@ let walletAddress;
     }
 
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
-
-    // Derive keypair from seed
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Safer wallet class resolution (compatible across versions)
+    // ✅ Detect wallet class across all TonWeb versions
     const WalletClass =
-      TonWeb.wallet?.all?.v4R2 ||
-      TonWeb.wallet?.WalletV4R2 ||
-      TonWeb.wallet?.v4R2 ||
-      TonWeb.wallet?.WalletV3R2 ||
-      TonWeb.wallet?.all?.v3R2;
+      TonWeb.wallet?.Wallets?.WalletV4R2 || // v0.0.60+
+      TonWeb.wallet?.all?.v4R2 ||           // legacy
+      TonWeb.wallet?.WalletV4R2 ||          // legacy alt
+      TonWeb.wallet?.v4R2 ||                // legacy alt
+      TonWeb.wallet?.WalletV3R2 ||          // fallback
+      TonWeb.wallet?.Wallets?.WalletV3R2;   // new path fallback
 
     if (!WalletClass) {
-      throw new Error("No compatible TonWeb wallet class found in TonWeb.wallet");
+      throw new Error("No compatible TonWeb wallet class found.");
     }
 
-    // ✅ Construct wallet
+    // ✅ Initialize wallet
     wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
       workchain: 0,
@@ -71,12 +69,10 @@ let walletAddress;
   }
 })();
 
-// ✅ Root route
 app.get("/", (req, res) => {
   res.send("TON Reward Server is running successfully 🚀");
 });
 
-// ✅ Check balance route
 app.get("/balance", async (req, res) => {
   try {
     if (!walletAddress) {
@@ -96,11 +92,9 @@ app.get("/balance", async (req, res) => {
   }
 });
 
-// ✅ Example endpoint (fetch live prices or data)
-app.get("/prices", async (req, res) => {
+app.get("/prices", (req, res) => {
   res.json({ status: "live", time: new Date().toISOString() });
 });
 
-// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
