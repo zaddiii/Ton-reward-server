@@ -2,12 +2,12 @@
 
 
 
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import TonWeb from "tonweb";
 import dotenv from "dotenv";
-import fs from "fs";
 
 dotenv.config();
 
@@ -15,114 +15,72 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-/* ------------------- TON SETUP ------------------- */
+// ------------------- ENV CHECK -------------------
+const required = [
+  "TON_PRIVATE_KEY",
+  "TON_WALLET_ADDRESS",
+  "TONCENTER_API_KEY",
+  "TONCENTER_API_URL",
+  "JETTON_MASTER",
+];
 
-if (
-  !process.env.TON_PRIVATE_KEY ||
-  !process.env.TON_WALLET_ADDRESS ||
-  !process.env.TONCENTER_API_KEY ||
-  !process.env.TONCENTER_API_URL
-) {
-  console.error("❌ Missing one or more required environment variables.");
-  console.error(
-    "Please set TON_PRIVATE_KEY, TON_WALLET_ADDRESS, TONCENTER_API_KEY, TONCENTER_API_URL."
-  );
-  process.exit(1);
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`❌ Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
 }
 
+// ------------------- TON SETUP -------------------
 const tonweb = new TonWeb(
   new TonWeb.HttpProvider(process.env.TONCENTER_API_URL, {
     apiKey: process.env.TONCENTER_API_KEY,
   })
 );
 
-// Load keypair and wallet
-let keyPair, wallet;
 try {
-  const seedOrSecret = TonWeb.utils.base64ToBytes(process.env.TON_PRIVATE_KEY);
-  const seed = seedOrSecret.length === 64 ? seedOrSecret.slice(0, 32) : seedOrSecret;
+  const walletBase64 = process.env.TON_PRIVATE_KEY;
+  const seed = TonWeb.utils.base64ToBytes(walletBase64);
+  const keyPair = TonWeb.utils.keyPairFromSeed(seed);
 
-  keyPair = TonWeb.utils.keyPairFromSeed(seed);
-  const WalletClass = TonWeb.wallet.all["v3R2"];
-  wallet = new WalletClass(tonweb.provider, { publicKey: keyPair.publicKey });
+  // ✅ Correct wallet class usage
+  const WalletClass = TonWeb.wallet.v3R2;
+  const wallet = new WalletClass(tonweb.provider, {
+    publicKey: keyPair.publicKey,
+  });
 
-  (async () => {
-    const address = await wallet.getAddress();
-    console.log("✅ Loaded Wallet Address:", address.toString(true, true, true));
-  })();
+  console.log("✅ TON Wallet Address:", process.env.TON_WALLET_ADDRESS);
+  console.log("✅ Jetton Master Contract:", process.env.JETTON_MASTER);
 } catch (err) {
   console.error("❌ Failed to initialize TON wallet:", err);
   process.exit(1);
 }
 
-/* ------------------- FILE HELPERS ------------------- */
-const logFile = "./transactions.json";
-if (!fs.existsSync(logFile)) fs.writeFileSync(logFile, "[]", "utf8");
-
-function logTransaction(data) {
-  const logs = JSON.parse(fs.readFileSync(logFile, "utf8"));
-  logs.push({ id: Date.now(), ...data, timestamp: new Date().toISOString() });
-  fs.writeFileSync(logFile, JSON.stringify(logs, null, 2));
-}
-
-/* ------------------- ROUTES ------------------- */
-
-// 🧾 Get backend wallet balance
-app.get("/api/wallet", async (req, res) => {
-  try {
-    const address = process.env.TON_WALLET_ADDRESS;
-    const balance = await tonweb.getBalance(address);
-    res.json({ address, balance: Number(balance) / 1e9 });
-  } catch (err) {
-    console.error("❌ Error fetching wallet:", err);
-    res.status(500).json({ error: "Failed to fetch wallet info" });
-  }
+// ------------------- ROUTES -------------------
+app.get("/", (req, res) => {
+  res.json({
+    status: "RPG TON Backend Online ✅",
+    wallet: process.env.TON_WALLET_ADDRESS,
+    jetton_master: process.env.JETTON_MASTER,
+  });
 });
 
-// 💸 Handle token transfer
-app.post("/api/transfer", async (req, res) => {
-  const { toAddress, amountTon } = req.body;
-  if (!toAddress || !amountTon)
-    return res.status(400).json({ error: "Missing toAddress or amountTon" });
-
+// Example route to fetch wallet balance
+app.get("/balance", async (req, res) => {
   try {
-    const amount = TonWeb.utils.toNano(amountTon);
-    const seqno = await wallet.methods.seqno().call();
-
-    const transfer = wallet.methods.transfer({
-      secretKey: keyPair.secretKey,
-      toAddress,
-      amount,
-      seqno,
-      payload: "RPG Game Reward",
-      sendMode: 3,
+    const address = new TonWeb.utils.Address(process.env.TON_WALLET_ADDRESS);
+    const balance = await tonweb.provider.getBalance(address.toString());
+    res.json({
+      wallet: process.env.TON_WALLET_ADDRESS,
+      balance: TonWeb.utils.fromNano(balance),
     });
-
-    await transfer.send();
-
-    const record = { to: toAddress, amountTon, status: "success" };
-    logTransaction(record);
-    res.json({ success: true, message: `Sent ${amountTon} TON to ${toAddress}` });
   } catch (err) {
-    console.error("❌ Transfer failed:", err);
-    const record = { to: toAddress, amountTon, status: "failed", error: err.message };
-    logTransaction(record);
-    res.status(500).json({ error: "Transfer failed", details: err.message });
+    res.status(500).json({ error: "Failed to fetch balance", details: err.message });
   }
 });
 
-// 📜 Get all transaction logs
-app.get("/api/transactions", (req, res) => {
-  try {
-    const logs = JSON.parse(fs.readFileSync(logFile, "utf8"));
-    res.json(logs);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to read transaction log" });
-  }
-});
-
-/* ------------------- SERVER ------------------- */
+// ------------------- SERVER -------------------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 RPG TON Backend running on port ${PORT} (${new Date().toLocaleString()})`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 RPG TON Backend running on port ${PORT}`);
+});
