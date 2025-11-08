@@ -43,12 +43,22 @@ let walletAddress;
     // Derive keypair from seed
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Correct wallet class path
+    // ✅ Safer wallet class resolution (compatible across versions)
     const WalletClass =
-  TonWeb.wallet?.v4R2 || TonWeb.wallet?.WalletV4R2 || TonWeb.wallet;
+      TonWeb.wallet?.all?.v4R2 ||
+      TonWeb.wallet?.WalletV4R2 ||
+      TonWeb.wallet?.v4R2 ||
+      TonWeb.wallet?.WalletV3R2 ||
+      TonWeb.wallet?.all?.v3R2;
 
+    if (!WalletClass) {
+      throw new Error("No compatible TonWeb wallet class found in TonWeb.wallet");
+    }
+
+    // ✅ Construct wallet
     wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
+      workchain: 0,
     });
 
     walletAddress = await wallet.getAddress();
