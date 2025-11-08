@@ -2,14 +2,15 @@
 
 
 
+
+
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import TonWeb from "tonweb";
 import dotenv from "dotenv";
-
-// ✅ Import wallet class directly (bypasses missing TonWeb.wallet)
-import { WalletV4R2 } from "tonweb/dist/wallets/v4r2.js";
+import { WalletV4R2 } from "tonweb/dist/wallets/v4r2.js"; // ✅ key fix
 
 dotenv.config();
 
@@ -36,7 +37,7 @@ let walletAddress;
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ Use imported WalletV4R2 class directly
+    // ✅ use direct WalletV4R2 class, no detection
     wallet = new WalletV4R2(tonweb.provider, {
       publicKey: keyPair.publicKey,
       workchain: 0,
