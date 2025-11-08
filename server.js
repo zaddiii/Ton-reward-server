@@ -4,13 +4,11 @@
 
 
 
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import TonWeb from "tonweb";
 import dotenv from "dotenv";
-import { WalletV4R2 } from "tonweb/dist/wallets/v4r2.js"; // ✅ key fix
 
 dotenv.config();
 
@@ -18,6 +16,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// ✅ TON API endpoint
 const tonweb = new TonWeb(
   new TonWeb.HttpProvider("https://toncenter.com/api/v2/jsonRPC")
 );
@@ -37,8 +36,9 @@ let walletAddress;
     console.log("🔐 Loaded 32-byte seed from TON_PRIVATE_KEY.");
     const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
 
-    // ✅ use direct WalletV4R2 class, no detection
-    wallet = new WalletV4R2(tonweb.provider, {
+    // ✅ Correct wallet init (v4R2 auto-selected)
+    const WalletClass = TonWeb.wallet.all["v4R2"];
+    wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
       workchain: 0,
     });
@@ -52,6 +52,7 @@ let walletAddress;
   }
 })();
 
+// ✅ Routes
 app.get("/", (req, res) => res.send("TON Reward Server is running 🚀"));
 
 app.get("/balance", async (req, res) => {
@@ -74,5 +75,6 @@ app.get("/balance", async (req, res) => {
   }
 });
 
+// ✅ Port
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
