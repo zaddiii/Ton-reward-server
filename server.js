@@ -71,7 +71,21 @@ app.post("/sync", async (req, res) => {
 
     console.log(`🪙 Sync request: sending ${tokens} RPG tokens to ${toAddress}`);
 
-    // === Step 1: Load backend wallet
+    // === Step 1: Validate TON address (accept all forms)
+    let destination;
+    try {
+      destination = new TonWeb.utils.Address(toAddress);
+    } catch {
+      try {
+        const parsed = TonWeb.Address.parseFriendly(toAddress);
+        destination = parsed.address;
+      } catch {
+        console.error("❌ Invalid TON address format:", toAddress);
+        return res.status(400).json({ error: "Invalid TON address format" });
+      }
+    }
+
+    // === Step 2: Load backend wallet
     const WalletClass =
       TonWeb.wallet.all?.v4R2 ||
       TonWeb.wallet.v4R2 ||
@@ -84,7 +98,7 @@ app.post("/sync", async (req, res) => {
 
     const seqno = (await wallet.methods.seqno().call()) || 0;
 
-    // === Step 2: Prepare Jetton (RPG token) transfer payload
+    // === Step 3: Prepare Jetton (RPG token) transfer payload
     if (!JETTON_MASTER) {
       return res.status(500).json({ error: "Missing JETTON_MASTER_ADDRESS in .env" });
     }
@@ -93,23 +107,8 @@ app.post("/sync", async (req, res) => {
       address: JETTON_MASTER,
     });
 
-    // Get backend's Jetton wallet address
     const jettonWallet = await jettonMaster.getWalletAddress(WALLET_ADDRESS);
-
-    // Convert tokens (RPG units) to nanoJettons (1 RPG = 1e9 nano)
     const jettonAmount = TonWeb.utils.toNano(tokens.toString());
-
-    // === Address Fix (accepts both EQ... and 0Q... forms)
-    let destination;
-    try {
-      destination = new TonWeb.utils.Address(toAddress);
-    } catch {
-      try {
-        destination = TonWeb.Address.parseFriendly(toAddress).address;
-      } catch {
-        return res.status(400).json({ error: "Invalid TON address format" });
-      }
-    }
 
     const payload = await jettonMaster.createTransferBody({
       jettonAmount,
@@ -119,7 +118,7 @@ app.post("/sync", async (req, res) => {
       forwardPayload: new TextEncoder().encode("RPG Reward 🪙"),
     });
 
-    // === Step 3: Send Jettons
+    // === Step 4: Send Jettons
     await wallet.methods
       .transfer({
         secretKey: keyPair.secretKey,
