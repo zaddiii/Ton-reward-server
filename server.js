@@ -2,7 +2,6 @@
 
 
 
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -47,6 +46,7 @@ console.log("🔐 Loaded TON private key for signing transactions");
 const walletAddress = WALLET_ADDRESS.trim();
 console.log("📜 Using provided wallet address:", walletAddress);
 
+// === ROUTES ===
 app.get("/", (req, res) => {
   res.send("✅ TON Reward Server (Testnet) is running 🚀");
 });
@@ -65,6 +65,21 @@ app.get("/balance", async (req, res) => {
   }
 });
 
+// 🪙 Wallet sync endpoint (for your game)
+app.post("/sync", (req, res) => {
+  try {
+    const wallet = req.body;
+    console.log("🪙 Wallet sync received:", wallet);
+
+    // You can store or process the wallet data here later
+    res.json({ status: "ok", message: "Wallet synced successfully!" });
+  } catch (err) {
+    console.error("❌ Error syncing wallet:", err);
+    res.status(500).json({ error: "Wallet sync failed" });
+  }
+});
+
+// === START SERVER ===
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
   console.log(`✅ TON Reward Server running on port ${PORT}`)
