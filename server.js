@@ -3,6 +3,10 @@
 
 
 
+
+
+
+// === server.js ===
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -22,7 +26,7 @@ const tonweb = new TonWeb(
 
 const PRIVATE_KEY_BASE64 = process.env.TON_PRIVATE_KEY;
 const WALLET_ADDRESS = process.env.TON_WALLET_ADDRESS;
-const JETTON_MASTER = process.env.JETTON_MASTER_ADDRESS; // RPG Jetton master address
+const JETTON_MASTER = process.env.JETTON_MASTER_ADDRESS;
 
 if (!PRIVATE_KEY_BASE64 || !WALLET_ADDRESS) {
   console.error("❌ Missing required env vars: TON_PRIVATE_KEY or TON_WALLET_ADDRESS");
@@ -37,44 +41,43 @@ if (seed.length !== 32) {
 }
 
 const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSeed(seed);
-console.log("🔐 TON private key loaded successfully");
-console.log("📜 Wallet address:", WALLET_ADDRESS);
+console.log("🔐 TON wallet ready:", WALLET_ADDRESS);
 
 // === ROUTES ===
 
-// Root
+// 🟢 Root check
 app.get("/", (req, res) => {
-  res.send("✅ RPG TON Reward Server (Testnet) is running 🚀");
+  res.send("✅ RPG TON Reward Server is live on Render 🚀");
 });
 
-// Check backend wallet balance
+// 💰 Get wallet balance
 app.get("/balance", async (req, res) => {
   try {
     const balanceNano = await tonweb.provider.getBalance(WALLET_ADDRESS);
     const balanceTon = TonWeb.utils.fromNano(balanceNano);
-    res.json({ walletAddress: WALLET_ADDRESS, balance: `${balanceTon} TON` });
+    res.json({ address: WALLET_ADDRESS, balance: `${balanceTon} TON` });
   } catch (err) {
     console.error("❌ Error fetching balance:", err);
     res.status(500).json({ error: "Failed to fetch balance" });
   }
 });
 
-// 🪙 SYNC WALLET — RPG frontend calls this
-app.post("/reward", async (req, res) => {
+// 🪙 Sync route — RPG frontend calls this when user hits "Sync Wallet"
+app.post("/sync", async (req, res) => {
   try {
-    const { toAddress, amount } = req.body;
+    const { toAddress, tokens } = req.body;
 
-    if (!toAddress || !amount) {
-      return res.status(400).json({ error: "Missing toAddress or amount" });
+    if (!toAddress || !tokens) {
+      return res.status(400).json({ error: "Missing toAddress or tokens" });
     }
 
-    console.log(`🪙 Reward: Sending ${amount} RPG tokens to ${toAddress}`);
+    console.log(`🔄 Sync request: ${tokens} tokens → ${toAddress}`);
 
-    // === Step 1: Validate TON address (accept all valid formats)
+    // Validate address
     let destination;
     try {
       destination = new TonWeb.utils.Address(toAddress);
-    } catch (e) {
+    } catch {
       try {
         destination = TonWeb.Address.parseFriendly(toAddress).address;
       } catch {
@@ -83,7 +86,7 @@ app.post("/reward", async (req, res) => {
       }
     }
 
-    // === Step 2: Load backend wallet
+    // Load wallet
     const WalletClass =
       TonWeb.wallet.all?.v4R2 ||
       TonWeb.wallet.v4R2 ||
@@ -96,11 +99,12 @@ app.post("/reward", async (req, res) => {
 
     const seqno = (await wallet.methods.seqno().call()) || 0;
 
-    // === Step 3: Load Jetton master and sender’s jetton wallet
+    // Require Jetton Master
     if (!JETTON_MASTER) {
       return res.status(500).json({ error: "Missing JETTON_MASTER_ADDRESS in .env" });
     }
 
+    // Load Jetton minter + wallet
     const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
       address: JETTON_MASTER,
     });
@@ -110,8 +114,8 @@ app.post("/reward", async (req, res) => {
       address: jettonWalletAddress,
     });
 
-    // === Step 4: Create payload to transfer tokens
-    const jettonAmount = TonWeb.utils.toNano(amount.toString());
+    // Prepare transfer payload
+    const jettonAmount = TonWeb.utils.toNano(tokens.toString());
     const payload = await jettonWallet.createTransferBody({
       jettonAmount,
       toAddress: destination,
@@ -120,32 +124,28 @@ app.post("/reward", async (req, res) => {
       forwardPayload: new TextEncoder().encode("RPG Reward 🪙"),
     });
 
-    // === Step 5: Send the transaction
+    // Execute transfer
     await wallet.methods
       .transfer({
         secretKey: keyPair.secretKey,
         toAddress: jettonWalletAddress.toString(),
-        amount: TonWeb.utils.toNano("0.05"), // TON fee
+        amount: TonWeb.utils.toNano("0.05"), // fee
         seqno,
         payload,
         sendMode: 3,
       })
       .send();
 
-    console.log(`✅ Successfully sent ${amount} RPG tokens to ${toAddress}`);
-
-    res.json({
-      success: true,
-      message: `Sent ${amount} RPG tokens to ${toAddress}`,
-    });
+    console.log(`✅ Sent ${tokens} RPG tokens to ${toAddress}`);
+    res.json({ success: true, message: `Sent ${tokens} RPG tokens to ${toAddress}` });
   } catch (err) {
-    console.error("❌ Reward error:", err);
-    res.status(500).json({ error: "Failed to send RPG tokens" });
+    console.error("❌ Sync error:", err);
+    res.status(500).json({ error: "Failed to sync wallet" });
   }
 });
 
 // === START SERVER ===
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log(`✅ TON Reward Server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 RPG TON Reward Server running on port ${PORT}`);
+});
