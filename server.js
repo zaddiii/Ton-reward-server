@@ -2,6 +2,8 @@
 
 
 
+
+
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -96,7 +98,18 @@ app.post("/sync", async (req, res) => {
 
     // Convert tokens (RPG units) to nanoJettons (1 RPG = 1e9 nano)
     const jettonAmount = TonWeb.utils.toNano(tokens.toString());
-    const destination = new TonWeb.utils.Address(toAddress);
+
+    // === Address Fix (accepts both EQ... and 0Q... forms)
+    let destination;
+    try {
+      destination = new TonWeb.utils.Address(toAddress);
+    } catch {
+      try {
+        destination = TonWeb.Address.parseFriendly(toAddress).address;
+      } catch {
+        return res.status(400).json({ error: "Invalid TON address format" });
+      }
+    }
 
     const payload = await jettonMaster.createTransferBody({
       jettonAmount,
