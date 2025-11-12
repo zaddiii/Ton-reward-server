@@ -4,10 +4,6 @@
 
 
 
-
-
-
-
 // === server.js ===
 import express from "express";
 import cors from "cors";
@@ -22,9 +18,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // === TON SETUP ===
-const tonweb = new TonWeb(
-  new TonWeb.HttpProvider("https://testnet.toncenter.com/api/v2/jsonRPC")
-);
+const tonweb = new TonWeb(new TonWeb.HttpProvider("https://testnet.toncenter.com/api/v2/jsonRPC"));
 
 const PRIVATE_KEY_BASE64 = process.env.TON_PRIVATE_KEY;
 const WALLET_ADDRESS = process.env.TON_WALLET_ADDRESS;
@@ -47,7 +41,7 @@ console.log("🔐 TON wallet ready:", WALLET_ADDRESS);
 
 // === ROUTES ===
 
-// 🟢 Root health check — required for Render to stop restart loops
+// 🟢 Root health check
 app.get("/", (req, res) => {
   res.status(200).send("✅ RPG TON Reward Server is live on Render 🚀");
 });
@@ -88,11 +82,11 @@ app.post("/sync", async (req, res) => {
       }
     }
 
-    // Initialize wallet
-    const WalletClass =
-      TonWeb.wallet.all?.v4R2 ||
-      TonWeb.wallet.v4R2 ||
-      TonWeb.wallet.WalletV4R2;
+    // Initialize wallet using v4R2
+    const WalletClass = TonWeb.wallet.v4R2 || TonWeb.wallet.all?.v4R2;
+    if (!WalletClass) {
+      throw new Error("Wallet class v4R2 not found in TonWeb");
+    }
 
     const wallet = new WalletClass(tonweb.provider, {
       publicKey: keyPair.publicKey,
