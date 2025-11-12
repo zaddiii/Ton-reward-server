@@ -6,6 +6,8 @@
 
 
 
+
+
 // === server.js ===
 import express from "express";
 import cors from "cors";
@@ -45,12 +47,12 @@ console.log("🔐 TON wallet ready:", WALLET_ADDRESS);
 
 // === ROUTES ===
 
-// 🟢 Root check
+// 🟢 Root health check — required for Render to stop restart loops
 app.get("/", (req, res) => {
-  res.send("✅ RPG TON Reward Server is live on Render 🚀");
+  res.status(200).send("✅ RPG TON Reward Server is live on Render 🚀");
 });
 
-// 💰 Get wallet balance
+// 💰 Wallet balance check
 app.get("/balance", async (req, res) => {
   try {
     const balanceNano = await tonweb.provider.getBalance(WALLET_ADDRESS);
@@ -62,7 +64,7 @@ app.get("/balance", async (req, res) => {
   }
 });
 
-// 🪙 Sync route — RPG frontend calls this when user hits "Sync Wallet"
+// 🪙 Sync route — frontend reward handler
 app.post("/sync", async (req, res) => {
   try {
     const { toAddress, tokens } = req.body;
@@ -73,7 +75,7 @@ app.post("/sync", async (req, res) => {
 
     console.log(`🔄 Sync request: ${tokens} tokens → ${toAddress}`);
 
-    // Validate address
+    // Validate destination address
     let destination;
     try {
       destination = new TonWeb.utils.Address(toAddress);
@@ -86,7 +88,7 @@ app.post("/sync", async (req, res) => {
       }
     }
 
-    // Load wallet
+    // Initialize wallet
     const WalletClass =
       TonWeb.wallet.all?.v4R2 ||
       TonWeb.wallet.v4R2 ||
@@ -99,12 +101,11 @@ app.post("/sync", async (req, res) => {
 
     const seqno = (await wallet.methods.seqno().call()) || 0;
 
-    // Require Jetton Master
     if (!JETTON_MASTER) {
       return res.status(500).json({ error: "Missing JETTON_MASTER_ADDRESS in .env" });
     }
 
-    // Load Jetton minter + wallet
+    // Prepare Jetton wallet + transfer payload
     const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
       address: JETTON_MASTER,
     });
@@ -114,7 +115,6 @@ app.post("/sync", async (req, res) => {
       address: jettonWalletAddress,
     });
 
-    // Prepare transfer payload
     const jettonAmount = TonWeb.utils.toNano(tokens.toString());
     const payload = await jettonWallet.createTransferBody({
       jettonAmount,
@@ -129,7 +129,7 @@ app.post("/sync", async (req, res) => {
       .transfer({
         secretKey: keyPair.secretKey,
         toAddress: jettonWalletAddress.toString(),
-        amount: TonWeb.utils.toNano("0.05"), // fee
+        amount: TonWeb.utils.toNano("0.05"), // network fee
         seqno,
         payload,
         sendMode: 3,
@@ -146,6 +146,6 @@ app.post("/sync", async (req, res) => {
 
 // === START SERVER ===
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 RPG TON Reward Server running on port ${PORT}`);
 });
